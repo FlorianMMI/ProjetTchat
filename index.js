@@ -1,46 +1,60 @@
-var Twig = require('twig');
-var express = require('express');
-var app = express();
-var path = require('path');
-var http = require('http').createServer(app);
-var io = require('socket.io')(http);
+import express from 'express';
+import { createServer } from 'http';
+import { Server } from 'socket.io';
+import { fileURLToPath } from 'url';
+import { dirname, join } from 'path';
+import Twig from 'twig';
 
+// Pour __dirname et __filename en ES modules
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = dirname(__filename);
+
+const app = express();
+const httpServer = createServer(app);
+const io = new Server(httpServer);
 
 // Stockage des messages en mémoire (optionnel)
 let messages = [];
+let users = {};
 
-// Socket.io : gestion des connexions
 io.on('connection', function(socket) {
     console.log('Un utilisateur est connecté');
 
-    // Envoyer l'historique des messages au nouvel utilisateur
     socket.emit('chat history', messages);
 
-    // Réception d'un message
-    socket.on('chat message', function(msg) {
-        messages.push(msg);
-        io.emit('chat message', msg); // Diffuse à tous les clients
+    socket.on('user connected', function(pseudo) {
+        users[socket.id] = pseudo;
+        if(!pseudo) return;
+        io.emit('user connected', pseudo);
+        io.emit('users list', Object.values(users));
     });
 
+    socket.on('chat message', function(msg) {
+        messages.push(msg);
+        io.emit('chat message', msg);
+    });
+
+    socket.on('disconnect', function() {
+        const pseudo = users[socket.id];
+        if (pseudo) {
+            io.emit('user disconnected', pseudo);
+            delete users[socket.id];
+            io.emit('users list', Object.values(users));
+        }
+    });
 });
 
-// Remplacer app.listen par http.listen
-
-
 // Configure Twig view engine
-app.set('views', path.join(__dirname));
+app.set('views', __dirname);
 app.set('view engine', 'twig');
 app.engine('twig', Twig.__express);
 
-app.use(express.static(path.join(__dirname, 'public')));
-
-
-
+app.use(express.static(join(__dirname, 'public')));
 
 app.get('/', function(req, res){
   res.render('home', {});
 });
 
-var server = http.listen(5000, function () {
+httpServer.listen(5000, function () {
    console.log("Express App running at http://127.0.0.1:5000/");
-})
+});

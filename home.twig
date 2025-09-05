@@ -15,14 +15,36 @@
     </form>
 </body>
 
-
 <script src="/socket.io/socket.io.js"></script>
 <script>
     const socket = io();
     let pseudo = '';
-    while(pseudo == ''){
-        pseudo = prompt('Quel est votre pseudo ?');
-    }
+    // Création d'un champ de saisie pour le pseudo
+    const pseudoInput = document.createElement('input');
+    pseudoInput.type = 'text';
+    pseudoInput.placeholder = 'Entrez votre pseudo';
+    pseudoInput.id = 'pseudoInput';
+    document.body.insertBefore(pseudoInput, document.body.firstChild);
+
+    const pseudoButton = document.createElement('button');
+    pseudoButton.textContent = 'Valider';
+    pseudoButton.id = 'pseudoButton';
+    document.body.insertBefore(pseudoButton, pseudoInput.nextSibling);
+
+    // Masquer le chat tant que le pseudo n'est pas défini
+    const chatElements = [document.getElementById('form'), document.getElementById('messages')];
+    chatElements.forEach(el => el.style.display = 'none');
+
+    pseudoButton.addEventListener('click', function() {
+        if (pseudoInput.value.trim() !== '') {
+            pseudo = pseudoInput.value.trim();
+            pseudoInput.disabled = true;
+            pseudoButton.disabled = true;
+            chatElements.forEach(el => el.style.display = '');
+            socket.emit('user connected', pseudo);
+        }
+    });
+    socket.emit('user connected', pseudo);
 
     const form = document.getElementById('form');
     const input = document.getElementById('input');
@@ -36,7 +58,6 @@
         }
     });
 
-
     socket.on('chat message', function(msg){
         const item = document.createElement('li');
         item.textContent = msg.pseudo + ' : ' + msg.message;
@@ -44,5 +65,24 @@
         window.scrollTo(0, document.body.scrollHeight);
     });
 
+    socket.on('user connected', function(pseudo){
+        const item = document.createElement('li');
+        item.textContent = pseudo + ' s\'est connecté(e)';
+        item.style.color = 'green';
+        messages.appendChild(item);
+        window.scrollTo(0, document.body.scrollHeight);
+    });
+
+    socket.on('user disconnected', function(pseudo){
+        const item = document.createElement('li');
+        item.textContent = pseudo + ' s\'est déconnecté(e)';
+        item.style.color = 'red';
+        messages.appendChild(item);
+        window.scrollTo(0, document.body.scrollHeight);
+    });
+
+    window.addEventListener('beforeunload', function() {
+        socket.emit('user disconnected', pseudo);
+    });
 </script>
 </html>
