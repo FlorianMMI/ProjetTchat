@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <title>Mini chat</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Mini chat</h1>
+    <p>Version de test V1.0</p>
+    <ul id="messages"></ul>
+    <form id="form" action="">
+        <input id="input" autocomplete="off" placeholder="Message" /><br>
+        <button>Envoyer</button>
+    </form>
+</body>
+
+
+<script src="/socket.io/socket.io.js"></script>
+<script>
+    const socket = io();
+    let pseudo = '';
+    while(pseudo == ''){
+        pseudo = prompt('Quel est votre pseudo ?');
+    }
+
+    const form = document.getElementById('form');
+    const input = document.getElementById('input');
+    const messages = document.getElementById('messages');
+
+    form.addEventListener('submit', function(e){
+        e.preventDefault();
+        if(input.value){
+            socket.emit('chat message', {message: input.value, pseudo: pseudo});
+            input.value = '';
+        }
+    });
+
+
+    socket.on('chat message', function(msg){
+        const item = document.createElement('li');
+        item.textContent = msg.pseudo + ' : ' + msg.message;
+        messages.appendChild(item);
+        window.scrollTo(0, document.body.scrollHeight);
+    });
+
+</script>
+</html>
