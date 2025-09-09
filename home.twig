@@ -25,6 +25,8 @@
     pseudoInput.placeholder = 'Entrez votre pseudo';
     pseudoInput.id = 'pseudoInput';
     document.body.insertBefore(pseudoInput, document.body.firstChild);
+    
+    
 
     const pseudoButton = document.createElement('button');
     pseudoButton.textContent = 'Valider';
@@ -54,11 +56,21 @@
         e.preventDefault();
         if(input.value){
             socket.emit('chat message', {message: input.value, pseudo: pseudo});
+            
             input.value = '';
         }
     });
+    socket.on('chat history', function(history) {
+        history.forEach(function(msg) {
+            const item = document.createElement('li');
+            item.textContent = msg.pseudo + ' : ' + msg.message;
+            messages.appendChild(item);
+        });
+        window.scrollTo(0, document.body.scrollHeight);
+    });
 
     socket.on('chat message', function(msg){
+        
         const item = document.createElement('li');
         item.textContent = msg.pseudo + ' : ' + msg.message;
         messages.appendChild(item);
